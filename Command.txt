@@ -1,0 +1,246 @@
+                    Command For Oozie Installation
+
+
+Create 3 AWS EC2 instances
+Install HADOOP on master and slaves
+
+Configure SSH from master to slaves
+ssh-keygen -t rsa -P ""
+
+Configure passwordless SSH
+cat $HOME/.ssh/id_rsa.pub>>$HOME/.ssh/authorized_keys
+
+Download HADOOP 2.7.3
+Wget https://archive.apache.org/dist/hadoop/core/hadoop-2.7.3/hadoop-2.7.3-src.tar.gz
+
+vi core-site.xml
+<property>
+<name>fs.defaultFS</name>
+<value>hdfs://master:9000</value>
+</property>
+<property>
+<name>hadoop.tmp.dir</name>
+<value>/home/ubuntu/hdata</value>
+</property>
+
+Vi hdfs-site.xml
+
+<configuration>
+<property>
+<name>dfs.replication</name>
+<value>2</value>
+</property>
+</configuration>
+
+Cp mapred-site.xml.template mapred-site.xml
+
+Vi mapred-site.xml
+<configuration>
+<property>
+<name>mapreduce.framework.name</name>
+<value>yarn</value>
+</property>
+</configuration>
+vi yarn-site.xml
+
+<property>
+<name>yarn.nodemanager.aux-services</name>
+<value>mapreduce_shuffle</value>
+</property>
+<property>
+<name>yarn.nodemanager.aux-services.mapreduce.shuffle.class</name>
+<value>org.apache.hadoop.mapred.ShuffleHandler</value>
+</property>
+<property>
+<name>yarn.resourcemanager.address</name>
+<value>master:8032</value>
+</property>
+<property>
+<name>yarn.resourcemanager.scheduler.address</name>
+<value>master:8030</value>
+</property>
+<property>
+<name>yarn.resourcemanager.resource-tracker.address</name>
+<value>master:8035</value>
+</property>
+<property>
+<name>yarn.resourcemanager.admin.address</name>
+<value>master:8033</value>
+</property>
+<property>
+<name>yarn.resourcemanager.webapp.address</name>
+<value>master:8035</value>
+</property>
+</configuration>
+
+Installation of Maven
+Wget https://repo.maven.apache.org/maven2/org/apache/maven/apache-maven/3.5.3/apache-maven-3.5.3-bin.tar.gz
+
+tar -xzvf apache-maven-3.5.3-bin.tar.gz
+
+vim .bashrc
+export M2_HOME=/home/ubuntu/apache-maven-3.5.3
+export PATH=$PATH:$M2_HOME/bin
+
+source .bashrc
+ 
+Install MYSQL and other Dependencies
+
+Sudo apt-get install mysql-server
+Sudo apt install mysql-client
+Sudo apt install libmysqlclient-dev
+
+Download other necessary packages
+1.	Ext-2.2.zip
+2.	Mysql-connector-java-8.0.11.jar
+3.	Doxia-module-twiki-1.0-alpha-9.2y.jar
+4.	Pentaho-aggdesigner-algorithm-5.1.5-jhyde.jar
+5.	Doxia-core-1.0-alpha-9.2y.jar
+
+Put these packages in the following installation apache-maven-3.5.3/lib/
+
+Download oozie-4.3.1
+
+Wget https://archive.apache.org/dist/oozie/4.3.1/oozie-4.3.1.tar.gz
+
+Tar -xzvf oozie-4.3.1.tar.gz
+
+Edit pom.xml
+
+<Hadoop version>2.7.3</Hadoop>
+ 
+Bin/mkdistro.sh -DskipTests -Puber 
+
+Mv oozie-4.3.1-distro-tar.gz ~
+Cd ~
+Mv oozie-4.3.1 oozie-4.3.1_
+
+Tar -xzvf  oozie-4.31-distro.tar.gz
+
+Vi .bashrc
+
+Export OOZIE_HOME=/home/ubuntu/oozie-4.3.1
+Export OOZIE_CONFIG=$OOZIE-HOME/conf
+Export CLASSPATH=CLASSPATH:$OOZIE_HOME/bin
+
+Source .bashrc
+
+Vi core-site.xml
+<property>
+<name>Hadoop.proxyuser.ubuntu.hosts</name>
+<value>*</value>
+</property>
+<property>
+<name>Hadoop.proxyuser.ubuntu.groups</name>
+<value> *</value>
+</property>
+
+Cd oozie-4.3.1/conf
+
+Vi oozie-site.xml
+<property>
+<name>oozie.service.JPAService.jdbc.driver</name>
+<value>com.mysql.cj.jdbc.Driver</value>
+</property>
+<property>
+<name>oozie.service.JPAService.jdbc.url</name>
+<value>jdbc:mysql://localhost:3306/oozie</value>  </property>
+<property>
+<name>oozie.service.JPAService.jdbc.username</name>
+<value>oozie</value>
+</property>
+<property>
+<name>oozie.service.JPAService.jdbc.password</name>
+<value>mysql</value>
+</property>
+<property> <!--change to your hadoop configuration directory--
+><name>oozie.service.HadoopAccessorService.hadoop.configurations</name>
+<value>*=/home/ubuntu/hadoop-2.6.5/etc/hadoop</value>
+</property>
+<property> <!-- master is the host name for master -->
+<name>oozie.service.WorkflowAppService.system.libpath</name>
+<value>hdfs://master:9000/user/ubuntu/share/lib</value>
+</property>
+
+Setup my sql
+
+Mysql -uroot -p
+
+Create an oozie database
+CREATE DATABASE oozie;
+
+CREATE USER ‘oozie’@’%’ IDENTIFIED BY ‘mysql’;
+
+GRANT ALL ON oozie.* TO ‘oozie’@’%’;
+
+FLUSH privileges;
+
+Exit
+
+Setup JARS
+
+Cd ~/oozie.4.3.1/
+
+Create a libext
+
+Mkdir libext
+Cp /home/ubuntu/Hadoop-2.7.3/share/Hadoop/*/lib/*.jar  libext/
+Cp /home/ubuntu/Hadoop-2.7.3/share/Hadoop/*/*.jar libext/
+
+Put java connector and ext-2.2 into libext
+Cp ../mysql-connector-java-8.0.11.jar libext/
+Cp ../ext-2.2.zip libext/
+
+Remove packages that create conflict
+Cd libext
+Mv servlet-api-2.5.jar servlet-api-2.5.jar.bak
+Mv jsp-api-2.1.jar jsp-api-2.1.jar.bak
+Mv jasper-compiler-5.5.23.jar jasper-compiler-5.5.23.jar.bak
+Mv jasper-runtime-5.5.23.jar jasper-runtime-5.5.23.jar.bak
+Mv slf4j-log4j12-1.7.5.jar slf4j-log4j12-1.7.5.jar.bak
+
+Cd ~/oozie-4.3.1/
+
+Create oozie.war with the following command
+Bin/oozie-setup.sh prepare-war
+
+Edit oozie-env.sh
+
+Set Java_home and oozie_prefix
+Export JAVA_HOME=/usr/lib/jvm/java-8-openjdk-amd64
+Export OOZIE_PREFIX=/home/ubuntu/oozie-4.3.1
+
+Export OOZIE_CONF_DIR=/home/ubuntu/oozie-4.3.1/conf/
+Export OOZIE_HOME=/home/ubuntu/oozie-4.3.1
+
+#add Hadoop package
+For file in $OOZIE_HOME/libext/*.jar
+Do
+Export CLASSPATH=$CLASSPATH:$file
+Done
+
+Source conf/oozie-env.sh
+
+Tar -xzvf oozie-sharelib-4.3.1.tar.gz
+
+Start-dfs.sh
+Start-yarn.sh
+Mr-jobhistory-daemon.sh start historyserver
+
+Add share directory to the path you configured in oozie-site.xml
+Bin/hdfs dfs -mkdir /user
+Bin/hdfs dfs -mkdir /user/ubuntu
+Bin/hdfs dfs -put ../oozie-4.3.1/share /user/ubuntu/
+
+Connect oozie with mysql
+Bin/ooziedb.sh create -sqlfile oozie.sql -run
+
+Bin/oozied.sh start
+
+Bin/oozie admin –oozie http://localhost:11000/oozie -status
+
+oozie job -oozie http://localhost:11000/oozie -config job.properties -run
+
+oozie job -oozie http://localhost:11000/oozie -info 0000007-161223101553230-oozie-root-W
+
+
